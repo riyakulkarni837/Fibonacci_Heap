@@ -44,7 +44,6 @@ class FibHeap:
         if not self.min_node:
             return
 
-        # Remove the minimum node from the roots list
         self.roots.remove(self.min_node)
 
         # Adding children of the minimum node to the root list.
@@ -53,14 +52,14 @@ class FibHeap:
                 self.roots.append(child)
                 child.parent = None
 
-        # Update the minimum node
+        # Consolidating the heap after deleting the minimum node
+        self.consolidate_heap()
+
+        # Updating the minimum node
         if self.roots:
             self.min_node = min(self.roots, key=lambda x: x.val)
         else:
             self.min_node = None
-
-        # Consolidate the heap
-        self.consolidate_heap()
 
     def find_min(self) -> FibNode:
         return self.min_node
