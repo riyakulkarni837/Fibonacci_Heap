@@ -40,26 +40,47 @@ class FibHeap:
             self.min_node = new_node
         return new_node
         
+    def update_min(self):
+        for node in self.roots:
+            if self.min_node is None or self.min_node.val > node.val:
+                self.min_node = node
+
     def delete_min(self) -> None:
-        if not self.min_node:
+        if not self.roots:
             return
 
-        self.roots.remove(self.min_node)
+        min_node = self.min_node
+        # Remove the minimum node from the roots list
+        self.roots.remove(min_node)
+        # Add the children of the minimum node back to the roots list
+        for child in min_node.children:
+            child.flag = False
+            child.parent = None
+            self.roots.append(child)
 
-        # Adding children of the minimum node to the root list.
-        if self.min_node.children:
-            for child in self.min_node.children:
-                self.roots.append(child)
-                child.parent = None
+        # Reorganize the heap to ensure at most one root node for each degree
+        degrees = {}
+        while len(self.roots) != 0:
+            current_node = self.roots.pop(0)
+            degree = len(current_node.children)
+            if degree not in degrees:
+                degrees[degree] = current_node
+            else:
+                existing_node = degrees[degree]
+                if current_node.val < existing_node.val:
+                    current_node.children.append(existing_node)
+                    existing_node.parent = current_node 
+                    self.roots.append(current_node)
+                else:
+                    existing_node.children.append(current_node)
+                    current_node.parent = existing_node
+                    self.roots.append(existing_node)
+                degrees.pop(degree)
 
-        # Consolidating the heap after deleting the minimum node
-        self.consolidate_heap()
-
-        # Updating the minimum node
-        if self.roots:
-            self.min_node = min(self.roots, key=lambda x: x.val)
-        else:
-            self.min_node = None
+        for node in degrees.values():
+            self.roots.append(node)
+        self.min_node = None
+        self.update_min()
 
     def find_min(self) -> FibNode:
         return self.min_node
