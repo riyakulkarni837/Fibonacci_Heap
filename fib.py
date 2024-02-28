@@ -41,51 +41,47 @@ class FibHeap:
             self.min_node = new_node
         return new_node
         
-    
+
     def delete_min(self) -> None:
         if not self.roots:
             return
-            
-        # Finding the minimum node and its index
-        min_node = min(self.roots, key=lambda x: x.val)
-        min_index = self.roots.index(min_node)
+        # Remove the minimum node from the roots list
+        min_node = self.min_node
+        self.roots.remove(min_node)
         
-        # Removing the minimum node from the roots list
-        self.roots.pop(min_index)
-        
-        # Adding the children of the deleted minimum node to the roots list
+        # Reincorporate the children of the minimum node into the root list
         for child in min_node.children:
             child.flag = False
             child.parent = None
             self.roots.append(child)
             
-        # Reorganizing the heap to ensure heap with unique degree
-        degree_table = [None] * (len(self.roots) * 2)
-        new_roots = []
+        # Reorganize the heap to ensure at most one root node for each degree
+        degrees = self.reorganize_heap()
         
-        for root in self.roots:
-            x = root
-            d = x.degree
-            while degree_table[d] is not None:
-                y = degree_table[d]
-                if x.val > y.val:
-                    x, y = y, x     
-                self.link_child_to_parent(y, x)
-                degree_table[d] = None
-                d += 1
-            degree_table[d] = x
-            
-        for node in degree_table:
-            if node is not None:
-                new_roots.append(node)
-                
-        self.roots = new_roots
-        # Updating the minimum node
-        self.min_node = None
-        for node in self.roots:
-            if self.min_node is None or self.min_node.val > node.val:
-                self.min_node = node
+        # Update the minimum node
+        self.min_node = min(degrees.values(), key=lambda x: x.val) if degrees else None
+        self.roots = list(degrees.values())
     
+    def reorganize_heap(self) -> None:
+        degrees = {}
+        while self.roots:
+            curr = self.roots.pop(0)
+            degree = len(curr.children)
+            if degree not in degrees:
+                degrees[degree] = curr
+            else:
+                exist = degrees[degree]
+                if curr.val < exist.val:
+                    curr.children.append(exist)
+                    exist.parent = curr
+                    self.roots.append(curr)
+                else:
+                    exist.children.append(curr)
+                    curr.parent = exist
+                    self.roots.append(exist)
+                degrees.pop(degree)
+        return degrees
+
 
     def find_min(self) -> FibNode:
         return self.min_node
