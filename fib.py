@@ -1,5 +1,4 @@
 from __future__ import annotations
-from collections import defaultdict
 
 class FibNode:
     def __init__(self, val: int):
@@ -40,25 +39,25 @@ class FibHeap:
         if self.min_node is None or val < self.min_node.val:
             self.min_node = new_node
         return new_node
-        
+
 
     def delete_min(self) -> None:
         if not self.roots:
             return
-        # Remove the minimum node from the roots list
+        # Removing the minimum node from the roots list
         min_node = self.min_node
         self.roots.remove(min_node)
         
-        # Reincorporate the children of the minimum node into the root list
+        # Reincorporating the children of the minimum node into the root list
         for child in min_node.children:
             child.flag = False
             child.parent = None
             self.roots.append(child)
             
-        # Reorganize the heap to ensure at most one root node for each degree
+        # Reorganizing the heap to ensure unique degree
         degrees = self.reorganize_heap()
         
-        # Update the minimum node
+        # Updating the minimum node
         self.min_node = min(degrees.values(), key=lambda x: x.val) if degrees else None
         self.roots = list(degrees.values())
     
@@ -93,35 +92,12 @@ class FibHeap:
         # Performing cascading cuts if necessary.
         if parent and node.val < parent.val:
             self.cut_node_from_parent(node, parent)
-            self.cascade_cut_node(parent)
+            self.cutting_sequence_upward(parent)
         
         # Updating the minimum node
         if node.val < self.min_node.val:
             self.min_node = node
 
-    def consolidate_heap(self):
-        # Consolidating the root list to ensure no two trees have the same degree.
-        degree_table = [None] * (len(self.roots) * 2)
-        new_roots = []
-
-        for root in self.roots:
-            x = root
-            d = x.get_degree()
-            while degree_table[d] is not None:
-                y = degree_table[d]
-                if x.val > y.val:
-                    x, y = y, x
-                self.link_child_to_parent(y, x)
-                degree_table[d] = None
-                d += 1
-            degree_table[d] = x
-
-        self.roots = []
-        for node in degree_table:
-            if node is not None:
-                new_roots.append(node)
-
-        self.roots = new_roots
 
     def cut_node_from_parent(self, child: FibNode, parent: FibNode):
         # Cutting a child node from its parent and add it to the root list.
@@ -133,7 +109,7 @@ class FibHeap:
 
         parent.degree -= 1
 
-    def cascade_cut_node(self, node: FibNode):
+    def cutting_sequence_upward(self, node: FibNode):
         # Cascading cuts upward through the tree.
         parent = node.parent
         if parent:
@@ -141,17 +117,5 @@ class FibHeap:
                 node.flag = True
             else:
                 self.cut_node_from_parent(node, parent)
-                self.cascade_cut_node(parent)
+                self.cutting_sequence_upward(parent)
 
-    def link_child_to_parent(self, y: FibNode, x: FibNode):
-        # Linking a child node to a parent node
-        self.roots.remove(y)
-
-        if x.children:
-            x.children.append(y)
-        else:
-            x.children = [y]
-
-        y.parent = x
-        y.flag = False
-        x.degree += 1
