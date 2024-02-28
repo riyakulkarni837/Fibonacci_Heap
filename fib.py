@@ -1,4 +1,5 @@
 from __future__ import annotations
+from collections import defaultdict
 
 class FibNode:
     def __init__(self, val: int):
@@ -40,51 +41,55 @@ class FibHeap:
             self.min_node = new_node
         return new_node
         
-    def update_min(self):
-        for node in self.roots:
-            if self.min_node is None or self.min_node.val > node.val:
-                self.min_node = node
-
+    
     def delete_min(self) -> None:
         if not self.roots:
             return
-
-        min_node = self.min_node
-        # Remove the minimum node from the roots list
-        self.roots.remove(min_node)
-        # Add the children of the minimum node back to the roots list
+            
+        # Finding the minimum node and its index
+        min_node = min(self.roots, key=lambda x: x.val)
+        min_index = self.roots.index(min_node)
+        
+        # Removing the minimum node from the roots list
+        self.roots.pop(min_index)
+        
+        # Adding the children of the deleted minimum node to the roots list
         for child in min_node.children:
             child.flag = False
             child.parent = None
             self.roots.append(child)
-
-        # Reorganize the heap to ensure at most one root node for each degree
-        degrees = {}
-        while len(self.roots) != 0:
-            current_node = self.roots.pop(0)
-            degree = len(current_node.children)
-            if degree not in degrees:
-                degrees[degree] = current_node
-            else:
-                existing_node = degrees[degree]
-                if current_node.val < existing_node.val:
-                    current_node.children.append(existing_node)
-                    existing_node.parent = current_node 
-                    self.roots.append(current_node)
-                else:
-                    existing_node.children.append(current_node)
-                    current_node.parent = existing_node
-                    self.roots.append(existing_node)
-                degrees.pop(degree)
-
-        for node in degrees.values():
-            self.roots.append(node)
+            
+        # Reorganizing the heap to ensure heap with unique degree
+        degree_table = [None] * (len(self.roots) * 2)
+        new_roots = []
+        
+        for root in self.roots:
+            x = root
+            d = x.degree
+            while degree_table[d] is not None:
+                y = degree_table[d]
+                if x.val > y.val:
+                    x, y = y, x     
+                self.link_child_to_parent(y, x)
+                degree_table[d] = None
+                d += 1
+            degree_table[d] = x
+            
+        for node in degree_table:
+            if node is not None:
+                new_roots.append(node)
+                
+        self.roots = new_roots
+        # Updating the minimum node
         self.min_node = None
-        self.update_min()
+        for node in self.roots:
+            if self.min_node is None or self.min_node.val > node.val:
+                self.min_node = node
+    
 
     def find_min(self) -> FibNode:
         return self.min_node
-
+        
     def decrease_priority(self, node: FibNode, new_val: int) -> None:
         node.val = new_val
         parent = node.parent
