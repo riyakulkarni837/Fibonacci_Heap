@@ -44,37 +44,48 @@ class FibHeapLazy:
                 self.roots.append(child)
                 child.parent = None
 
+        # Mark the minimum node as vacant
+        min_node.flag = True
+        min_node.parent = None
+        min_node.children = []
+
     def find_min_lazy(self) -> FibNodeLazy:
         if not self.roots:
             return None
         return min(self.roots, key=lambda x: x.val)
 
     def decrease_priority(self, node: FibNodeLazy, new_val: int) -> None:
-        if new_val > node.val:
-            raise ValueError("New value is greater than the current value")
-
         node.val = new_val
         parent = node.parent
-
+        
+        # Performing cascading cuts if necessary.
         if parent and node.val < parent.val:
-            self._cut_node(node, parent)
-            self._cascade_cut(parent)
+            self.cut_node_from_parent(node, parent)
+            self.cutting_sequence_upward(parent)
+        
+        # Updating the minimum node
+        if node.val < self.min_node.val:
+            self.min_node = node
 
-    def _cut_node(self, node: FibNodeLazy, parent: FibNodeLazy) -> None:
-        if node in parent.children:
-            parent.children.remove(node)
-            self.roots.append(node)
-            node.parent = None
-            node.flag = False
+    def cut_node_from_parent(self, child: FibNode, parent: FibNode):
+        # Cutting a child node from its parent and add it to the root list.
+        if child in parent.children:
+            parent.children.remove(child)
+            self.roots.append(child)
+            child.parent = None
+            child.flag = False
 
-    def _cascade_cut(self, node: FibNodeLazy) -> None:
+        parent.degree -= 1
+
+    def cutting_sequence_upward(self, node: FibNode):
+        # Cascading cuts upward through the tree.
         parent = node.parent
         if parent:
             if not node.flag:
                 node.flag = True
             else:
-                self._cut_node(node, parent)
-                self._cascade_cut(parent)
+                self.cut_node_from_parent(node, parent)
+                self.cutting_sequence_upward(parent)
 
 # class FibHeapLazy:
 #     def __init__(self):
